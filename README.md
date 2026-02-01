@@ -19,14 +19,19 @@ A command-line interface for the Attio CRM API built with Rust.
 
 ## Installation
 
-### From Source
+### Quick Install (macOS)
+
+**Recommended:** Use the install script for a seamless experience:
+
 ```bash
-git clone https://github.com/zlahham/attio-cli.git
-cd attio-cli
-cargo build --release
+curl -fsSL https://raw.githubusercontent.com/zlahham/attio-cli/main/install.sh | sh
 ```
 
-The binary will be available at `target/release/attio`.
+This script will:
+- ✅ Detect your Mac architecture (Intel/Apple Silicon)
+- ✅ Download the latest release
+- ✅ Remove macOS quarantine flags (no security warnings!)
+- ✅ Install to `/usr/local/bin`
 
 ### From Binary
 
@@ -37,15 +42,32 @@ Download the latest release for your platform from the [releases page](https://g
 - macOS (x86_64 and ARM64)
 - Windows (x86_64)
 
-**Installation:**
+**macOS Installation:**
 ```bash
-# Linux/macOS - download and make executable
-chmod +x attio-*
-sudo mv attio-* /usr/local/bin/attio
+# Download the appropriate binary for your Mac:
+# - attio-macos-arm64 (Apple Silicon M1/M2/M3)
+# - attio-macos-amd64 (Intel)
 
-# Or add to your PATH
-mv attio-* ~/bin/attio  # or any directory in your PATH
+# Remove quarantine flag and install
+xattr -d com.apple.quarantine attio-macos-*
+chmod +x attio-macos-*
+sudo mv attio-macos-* /usr/local/bin/attio
 ```
+
+**Linux Installation:**
+```bash
+chmod +x attio-linux-*
+sudo mv attio-linux-* /usr/local/bin/attio
+```
+
+### From Source
+```bash
+git clone https://github.com/zlahham/attio-cli.git
+cd attio-cli
+cargo build --release
+```
+
+The binary will be available at `target/release/attio`.
 
 ## Authentication
 
