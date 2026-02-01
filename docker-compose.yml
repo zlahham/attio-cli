@@ -1,0 +1,11 @@
+services:
+  app:
+    build: .
+    volumes:
+      - .:/app
+      - cargo-cache:/usr/local/cargo/registry
+    environment:
+      - ATTIO_API_TOKEN=${ATTIO_API_TOKEN}
+
+volumes:
+  cargo-cache:
