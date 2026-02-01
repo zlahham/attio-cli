@@ -186,15 +186,19 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
                 match key.as_str() {
                     "cache-limit-mb" => {
-                        let limit: u64 = value.parse().map_err(|_| {
-                            "Invalid value. cache-limit-mb must be a positive number."
-                        })?;
+                        let limit: u64 = value.parse().map_err(
+                            |_| "Invalid value. cache-limit-mb must be a positive number.",
+                        )?;
                         config.cache_limit_mb = limit;
                         write_config(&config)?;
                         println!("✅ Set cache-limit-mb to {}", limit);
                     }
                     _ => {
-                        return Err(format!("Unknown config key: {}. Available keys: cache-limit-mb", key).into());
+                        return Err(format!(
+                            "Unknown config key: {}. Available keys: cache-limit-mb",
+                            key
+                        )
+                        .into());
                     }
                 }
             }
@@ -205,7 +209,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
                         println!("{}", config.cache_limit_mb);
                     }
                     _ => {
-                        return Err(format!("Unknown config key: {}. Available keys: cache-limit-mb", key).into());
+                        return Err(format!(
+                            "Unknown config key: {}. Available keys: cache-limit-mb",
+                            key
+                        )
+                        .into());
                     }
                 }
             }
@@ -222,7 +230,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
                 println!("{table}");
             }
-        }
+        },
         Commands::Notes { action } => {
             let token = get_token()?;
             let config = get_config().unwrap_or_else(|_| models::Config::new(token.clone()));

@@ -98,32 +98,35 @@ async fn run_app(
 
     // Helper to add notes to cache with deduplication and size limit
     // Returns (added_count, limit_reached)
-    let add_to_cache =
-        |cache: &mut Vec<Note>, cache_size: &mut usize, new_notes: Vec<Note>, limit: usize| -> (usize, bool) {
-            let mut added = 0;
-            let mut limit_reached = false;
-            for note in new_notes {
-                // Only add if not already in cache
-                if !cache.iter().any(|n| n.id.note_id == note.id.note_id) {
-                    let note_size = note.estimate_size_bytes();
-                    // Check if adding this note would exceed the limit
-                    if *cache_size + note_size <= limit {
-                        *cache_size += note_size;
-                        cache.push(note);
-                        added += 1;
-                    } else {
-                        // Cache limit reached, stop adding
-                        log_debug(&format!(
-                            "Cache limit reached: {} bytes / {} bytes",
-                            *cache_size, limit
-                        ));
-                        limit_reached = true;
-                        break;
-                    }
+    let add_to_cache = |cache: &mut Vec<Note>,
+                        cache_size: &mut usize,
+                        new_notes: Vec<Note>,
+                        limit: usize|
+     -> (usize, bool) {
+        let mut added = 0;
+        let mut limit_reached = false;
+        for note in new_notes {
+            // Only add if not already in cache
+            if !cache.iter().any(|n| n.id.note_id == note.id.note_id) {
+                let note_size = note.estimate_size_bytes();
+                // Check if adding this note would exceed the limit
+                if *cache_size + note_size <= limit {
+                    *cache_size += note_size;
+                    cache.push(note);
+                    added += 1;
+                } else {
+                    // Cache limit reached, stop adding
+                    log_debug(&format!(
+                        "Cache limit reached: {} bytes / {} bytes",
+                        *cache_size, limit
+                    ));
+                    limit_reached = true;
+                    break;
                 }
             }
-            (added, limit_reached)
-        };
+        }
+        (added, limit_reached)
+    };
 
     // Helper for rendering
     let draw_screen = |terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
@@ -192,64 +195,72 @@ async fn run_app(
                 Layout::default()
                     .direction(Direction::Vertical)
                     .constraints([
-                        Constraint::Length(3),  // Search box
-                        Constraint::Min(0),      // Notes table
-                        Constraint::Length(3),   // Help footer
+                        Constraint::Length(3), // Search box
+                        Constraint::Min(0),    // Notes table
+                        Constraint::Length(3), // Help footer
                     ])
                     .split(f.area())
             } else {
                 Layout::default()
                     .direction(Direction::Vertical)
                     .constraints([
-                        Constraint::Min(0),      // Notes table
-                        Constraint::Length(3),   // Help footer
+                        Constraint::Min(0),    // Notes table
+                        Constraint::Length(3), // Help footer
                     ])
                     .split(f.area())
             };
 
-            let (table_chunk, help_chunk) = if input_mode == &InputMode::Search || !search_query.is_empty() {
-                // Render search box
-                let search_text = if input_mode == &InputMode::Search {
-                    format!("🔍 {}_", search_query)  // Show cursor
-                } else {
-                    format!("🔍 {} (Press / to search again)", search_query)
-                };
+            let (table_chunk, help_chunk) =
+                if input_mode == &InputMode::Search || !search_query.is_empty() {
+                    // Render search box
+                    let search_text = if input_mode == &InputMode::Search {
+                        format!("🔍 {}_", search_query) // Show cursor
+                    } else {
+                        format!("🔍 {} (Press / to search again)", search_query)
+                    };
 
-                let search_style = if input_mode == &InputMode::Search {
-                    Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)
-                } else {
-                    Style::default().fg(Color::Yellow)
-                };
+                    let search_style = if input_mode == &InputMode::Search {
+                        Style::default()
+                            .fg(Color::Green)
+                            .add_modifier(Modifier::BOLD)
+                    } else {
+                        Style::default().fg(Color::Yellow)
+                    };
 
-                let search_widget = Paragraph::new(search_text)
-                    .block(
+                    let search_widget = Paragraph::new(search_text).block(
                         Block::default()
                             .borders(Borders::ALL)
                             .title(" Search ")
                             .style(search_style),
                     );
-                f.render_widget(search_widget, chunks[0]);
-                (chunks[1], chunks[2])
-            } else {
-                (chunks[0], chunks[1])
-            };
+                    f.render_widget(search_widget, chunks[0]);
+                    (chunks[1], chunks[2])
+                } else {
+                    (chunks[0], chunks[1])
+                };
 
             let cache_info = format!("{:.1}MB / {:.0}MB", cache_mb, limit_mb);
 
             let title_text = if let Some(total) = total_matches {
                 format!(
                     " Notes - {} matches from {} cached | Cache: {} (Page {}) ",
-                    total, all_notes.len(), cache_info, current_page
+                    total,
+                    all_notes.len(),
+                    cache_info,
+                    current_page
                 )
             } else if is_fetching_all {
                 format!(
                     " Notes - Fetching all... ({} cached) | Cache: {} ",
-                    all_notes.len(), cache_info
+                    all_notes.len(),
+                    cache_info
                 )
             } else {
                 format!(
                     " Notes - {} cached | Cache: {} (Page {}) ",
-                    all_notes.len(), cache_info, current_page
+                    all_notes.len(),
+                    cache_info,
+                    current_page
                 )
             };
 
@@ -398,7 +409,12 @@ async fn run_app(
     match client.list_notes(Some(limit), Some(offset)).await {
         Ok(resp) => {
             total_fetched = resp.data.len();
-            let _ = add_to_cache(&mut all_notes, &mut cache_size_bytes, resp.data, cache_limit_bytes);
+            let _ = add_to_cache(
+                &mut all_notes,
+                &mut cache_size_bytes,
+                resp.data,
+                cache_limit_bytes,
+            );
         }
         Err(e) => error_msg = Some(e.to_string()),
     }
@@ -441,7 +457,10 @@ async fn run_app(
                         input_mode = InputMode::Search;
                         search_offset = 0;
                     }
-                    KeyCode::Char('a') if input_mode == InputMode::Normal && key.modifiers.contains(event::KeyModifiers::CONTROL) => {
+                    KeyCode::Char('a')
+                        if input_mode == InputMode::Normal
+                            && key.modifiers.contains(event::KeyModifiers::CONTROL) =>
+                    {
                         // Fetch all notes
                         is_fetching_all = true;
                         let mut fetch_offset = 0u32;
@@ -464,10 +483,18 @@ async fn run_app(
                                 cache_limit_bytes,
                             )?;
 
-                            match client.list_notes(Some(fetch_limit), Some(fetch_offset)).await {
+                            match client
+                                .list_notes(Some(fetch_limit), Some(fetch_offset))
+                                .await
+                            {
                                 Ok(resp) => {
                                     let fetched = resp.data.len();
-                                    let (_added, limit_reached) = add_to_cache(&mut all_notes, &mut cache_size_bytes, resp.data, cache_limit_bytes);
+                                    let (_added, limit_reached) = add_to_cache(
+                                        &mut all_notes,
+                                        &mut cache_size_bytes,
+                                        resp.data,
+                                        cache_limit_bytes,
+                                    );
 
                                     if limit_reached {
                                         // Cache limit reached
@@ -510,7 +537,10 @@ async fn run_app(
                                 .iter()
                                 .filter(|note| {
                                     note.title.to_lowercase().contains(&query_lower)
-                                        || note.content_plaintext.to_lowercase().contains(&query_lower)
+                                        || note
+                                            .content_plaintext
+                                            .to_lowercase()
+                                            .contains(&query_lower)
                                 })
                                 .count();
 
@@ -533,7 +563,7 @@ async fn run_app(
                                     terminal,
                                     &all_notes,
                                     &error_msg,
-                                    offset,  // Keep current offset during fetch
+                                    offset, // Keep current offset during fetch
                                     search_offset,
                                     limit,
                                     total_fetched,
@@ -547,7 +577,12 @@ async fn run_app(
                                 match client.list_notes(Some(limit), Some(next_offset)).await {
                                     Ok(resp) => {
                                         total_fetched = resp.data.len();
-                                        let (_added, limit_reached) = add_to_cache(&mut all_notes, &mut cache_size_bytes, resp.data, cache_limit_bytes);
+                                        let (_added, limit_reached) = add_to_cache(
+                                            &mut all_notes,
+                                            &mut cache_size_bytes,
+                                            resp.data,
+                                            cache_limit_bytes,
+                                        );
 
                                         // Only move forward if we have data at the next offset
                                         if next_offset < all_notes.len() as u32 {
@@ -555,7 +590,10 @@ async fn run_app(
                                             error_msg = None;
                                             terminal.clear()?;
                                         } else if limit_reached {
-                                            error_msg = Some("Cache limit reached. Not caching new notes.".to_string());
+                                            error_msg = Some(
+                                                "Cache limit reached. Not caching new notes."
+                                                    .to_string(),
+                                            );
                                         }
                                         // If total_fetched == 0, we're at the end, don't move
                                     }
