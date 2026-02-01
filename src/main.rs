@@ -1,5 +1,5 @@
-mod models;
 mod client;
+mod models;
 mod tui;
 
 use clap::{Parser, Subcommand};
@@ -122,7 +122,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
             }
             let data = serde_json::json!({ "token": trimmed_token });
             fs::write(config_path, serde_json::to_string_pretty(&data)?)?;
-            println!("✅ Successfully authenticated! Token saved to {:?}", get_config_path());
+            println!(
+                "✅ Successfully authenticated! Token saved to {:?}",
+                get_config_path()
+            );
         }
         Commands::Notes { action } => {
             let token = get_token()?;
@@ -152,7 +155,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
                         tui::run_list_tui(client).await?;
                     }
                 }
-                NoteCommands::Get { note_id, open_in_browser } => {
+                NoteCommands::Get {
+                    note_id,
+                    open_in_browser,
+                } => {
                     let response = client.get_note(&note_id).await?;
                     let note = response.data;
 
@@ -179,21 +185,27 @@ async fn main() -> Result<(), Box<dyn Error>> {
                             };
                             let url = format!(
                                 "https://app.attio.com/{}/{}/{}/notes?modal=note&id={}",
-                                slug,
-                                parent,
-                                note.parent_record_id,
-                                note.id.note_id
+                                slug, parent, note.parent_record_id, note.id.note_id
                             );
                             println!("🔗 Opening note in browser...");
                             if let Err(e) = webbrowser::open(&url) {
                                 eprintln!("Failed to open browser: {}", e);
                             }
                         } else {
-                            println!("⚠️ Could not determine workspace slug to open identification URL.");
+                            println!(
+                                "⚠️ Could not determine workspace slug to open identification URL."
+                            );
                         }
                     }
                 }
-                NoteCommands::Create { parent_object, parent_record_id, title, content, format, open_in_browser } => {
+                NoteCommands::Create {
+                    parent_object,
+                    parent_record_id,
+                    title,
+                    content,
+                    format,
+                    open_in_browser,
+                } => {
                     let request = crate::models::CreateNoteRequest {
                         data: crate::models::CreateNoteData {
                             parent_object,
@@ -229,10 +241,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                             };
                             let url = format!(
                                 "https://app.attio.com/{}/{}/{}/notes?modal=note&id={}",
-                                slug,
-                                parent,
-                                note.parent_record_id,
-                                note.id.note_id
+                                slug, parent, note.parent_record_id, note.id.note_id
                             );
                             println!("🔗 Opening note in browser...");
                             if let Err(e) = webbrowser::open(&url) {

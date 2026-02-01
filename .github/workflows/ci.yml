@@ -49,6 +49,7 @@ jobs:
         run: cargo test --verbose
 
   build-matrix:
+    needs: test
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]

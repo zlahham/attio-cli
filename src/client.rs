@@ -1,5 +1,5 @@
 use crate::models::ListNotesResponse;
-use reqwest::{header, Client};
+use reqwest::{Client, header};
 use std::error::Error;
 
 const BASE_URL: &str = "https://api.attio.com/v2";
@@ -15,21 +15,18 @@ impl AttioClient {
         let mut auth_value = header::HeaderValue::from_str(&format!("Bearer {}", token)).unwrap();
         auth_value.set_sensitive(true);
         headers.insert(header::AUTHORIZATION, auth_value);
-        headers.insert(header::USER_AGENT, header::HeaderValue::from_static("attio-cli/0.1.0"));
+        headers.insert(
+            header::USER_AGENT,
+            header::HeaderValue::from_static("attio-cli/0.1.0"),
+        );
 
-        let client = Client::builder()
-            .default_headers(headers)
-            .build()
-            .unwrap();
+        let client = Client::builder().default_headers(headers).build().unwrap();
 
         Self { client }
     }
 
     pub async fn identify(&self) -> Result<crate::models::IdentifyResponse, Box<dyn Error>> {
-        let response = self.client
-            .get(format!("{}/self", BASE_URL))
-            .send()
-            .await?;
+        let response = self.client.get(format!("{}/self", BASE_URL)).send().await?;
 
         if !response.status().is_success() {
             let status = response.status();
@@ -41,7 +38,11 @@ impl AttioClient {
         Ok(response_data)
     }
 
-    pub async fn list_notes(&self, limit: Option<u32>, offset: Option<u32>) -> Result<ListNotesResponse, Box<dyn Error>> {
+    pub async fn list_notes(
+        &self,
+        limit: Option<u32>,
+        offset: Option<u32>,
+    ) -> Result<ListNotesResponse, Box<dyn Error>> {
         let mut url = format!("{}/notes", BASE_URL);
         let mut query_params = Vec::new();
 
@@ -57,10 +58,7 @@ impl AttioClient {
             url.push_str(&query_params.join("&"));
         }
 
-        let response = self.client
-            .get(url)
-            .send()
-            .await?;
+        let response = self.client.get(url).send().await?;
 
         if !response.status().is_success() {
             let status = response.status();
@@ -73,8 +71,12 @@ impl AttioClient {
         Ok(response_data)
     }
 
-    pub async fn get_note(&self, note_id: &str) -> Result<crate::models::GetNoteResponse, Box<dyn Error>> {
-        let response = self.client
+    pub async fn get_note(
+        &self,
+        note_id: &str,
+    ) -> Result<crate::models::GetNoteResponse, Box<dyn Error>> {
+        let response = self
+            .client
             .get(format!("{}/notes/{}", BASE_URL, note_id))
             .send()
             .await?;
@@ -89,8 +91,12 @@ impl AttioClient {
         Ok(response_data)
     }
 
-    pub async fn create_note(&self, data: crate::models::CreateNoteRequest) -> Result<crate::models::GetNoteResponse, Box<dyn Error>> {
-        let response = self.client
+    pub async fn create_note(
+        &self,
+        data: crate::models::CreateNoteRequest,
+    ) -> Result<crate::models::GetNoteResponse, Box<dyn Error>> {
+        let response = self
+            .client
             .post(format!("{}/notes", BASE_URL))
             .json(&data)
             .send()
@@ -107,7 +113,8 @@ impl AttioClient {
     }
 
     pub async fn delete_note(&self, note_id: &str) -> Result<(), Box<dyn Error>> {
-        let response = self.client
+        let response = self
+            .client
             .delete(format!("{}/notes/{}", BASE_URL, note_id))
             .send()
             .await?;
