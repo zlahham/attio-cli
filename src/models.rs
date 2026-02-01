@@ -1,5 +1,25 @@
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Config {
+    pub token: String,
+    #[serde(default = "default_cache_limit_mb")]
+    pub cache_limit_mb: u64,
+}
+
+fn default_cache_limit_mb() -> u64 {
+    50
+}
+
+impl Config {
+    pub fn new(token: String) -> Self {
+        Self {
+            token,
+            cache_limit_mb: default_cache_limit_mb(),
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ListNotesResponse {
     pub data: Vec<Note>,
@@ -47,6 +67,21 @@ pub struct Note {
 pub struct NoteId {
     pub workspace_id: String,
     pub note_id: String,
+}
+
+impl Note {
+    /// Estimate the memory size of this note in bytes
+    pub fn estimate_size_bytes(&self) -> usize {
+        std::mem::size_of::<Self>()
+            + self.id.workspace_id.capacity()
+            + self.id.note_id.capacity()
+            + self.parent_object.capacity()
+            + self.parent_record_id.capacity()
+            + self.title.capacity()
+            + self.content_plaintext.capacity()
+            + self.content_markdown.capacity()
+            + self.created_at.capacity()
+    }
 }
 
 #[cfg(test)]

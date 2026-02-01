@@ -9,8 +9,13 @@ A command-line interface for the Attio CRM API built with Rust.
 - 🔐 Simple authentication with API tokens
 - 📝 Full note management (list, view, create, delete)
 - 🎨 Interactive TUI mode for browsing notes
+  - 🔍 Real-time search across cached notes (press `/`)
+  - 💾 Smart caching with configurable memory limits
+  - ⚡ Fetch all notes with Ctrl+A for comprehensive search
+  - 🎨 Color-coded cache usage indicators
 - 🌐 Open notes directly in your browser
 - 📊 Clean table-formatted output
+- ⚙️ Configurable settings (cache limits, etc.)
 
 ## Installation
 
@@ -75,6 +80,51 @@ Saves your Attio API token to the config file for persistent authentication.
 
 ---
 
+### Configuration Commands
+
+#### Set Configuration
+
+```bash
+attio config set <key> <value>
+```
+
+Set a configuration value.
+
+**Available keys:**
+- `cache-limit-mb` - Maximum cache size in megabytes (default: 50)
+
+**Example:**
+```bash
+attio config set cache-limit-mb 100
+```
+
+---
+
+#### Get Configuration
+
+```bash
+attio config get <key>
+```
+
+Get the current value of a configuration setting.
+
+**Example:**
+```bash
+attio config get cache-limit-mb
+```
+
+---
+
+#### List Configuration
+
+```bash
+attio config list
+```
+
+Display all current configuration settings.
+
+---
+
 ### Notes Commands
 
 #### List Notes
@@ -88,6 +138,21 @@ attio notes list --plain
 ```
 
 Lists all notes in your workspace. By default, launches an interactive terminal UI for browsing notes. Use `--plain` for a simple table output.
+
+**Interactive TUI Controls:**
+- `←/→` - Navigate between pages
+- `/` - Enter search mode
+  - Type to search across all cached notes by title/content
+  - `Backspace` to delete characters
+  - `Esc` to exit search
+- `Ctrl+A` - Fetch all notes into cache for comprehensive searching
+- `Q` or `Esc` - Quit
+
+**Features:**
+- Smart caching: Notes are cached as you browse to improve search performance
+- Memory management: Visual indicator shows cache usage with color coding (green/yellow/red)
+- Search pagination: Navigate through search results with arrow keys
+- Configurable cache limit (see `attio config set cache-limit-mb`)
 
 **Flags:**
 - `--plain` - Display notes in a non-interactive table format
@@ -170,6 +235,18 @@ Configuration is stored at:
 - **macOS**: `~/Library/Application Support/attio/config.json`
 - **Windows**: `%APPDATA%\attio\config.json`
 
+**Configuration file format:**
+```json
+{
+  "token": "your_api_token_here",
+  "cache_limit_mb": 50
+}
+```
+
+**Available settings:**
+- `token` - Your Attio API token (set via `attio auth <token>`)
+- `cache_limit_mb` - Maximum cache size in MB (set via `attio config set cache-limit-mb <value>`, default: 50)
+
 ## Development
 
 ### Prerequisites
@@ -223,6 +300,8 @@ This will automatically:
 ## Roadmap
 
 - [x] Notes endpoints (list, get, create, delete)
+- [x] Interactive TUI with search and caching
+- [x] Configuration management
 - [ ] Companies endpoints
 - [ ] People endpoints
 - [ ] Lists endpoints

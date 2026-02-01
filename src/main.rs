@@ -30,6 +30,29 @@ enum Commands {
         #[command(subcommand)]
         action: NoteCommands,
     },
+    /// Configuration management
+    Config {
+        #[command(subcommand)]
+        action: ConfigCommands,
+    },
+}
+
+#[derive(Subcommand)]
+enum ConfigCommands {
+    /// Set a configuration value
+    Set {
+        /// Configuration key (e.g., cache-limit-mb)
+        key: String,
+        /// Configuration value
+        value: String,
+    },
+    /// Get a configuration value
+    Get {
+        /// Configuration key (e.g., cache-limit-mb)
+        key: String,
+    },
+    /// List all configuration values
+    List,
 }
 
 #[derive(Subcommand)]
@@ -83,17 +106,39 @@ fn get_config_path() -> PathBuf {
     path
 }
 
-fn get_token() -> Result<String, Box<dyn Error>> {
-    // 1. Check config file first
+fn read_config() -> Result<models::Config, Box<dyn Error>> {
     let config_path = get_config_path();
     if config_path.exists() {
         let content = fs::read_to_string(&config_path)?;
-        let data: serde_json::Value = serde_json::from_str(&content)?;
-        if let Some(token) = data["token"].as_str() {
-            let token = token.trim();
-            if !token.is_empty() {
-                return Ok(token.to_string());
-            }
+        // Try to parse as new Config format
+        if let Ok(config) = serde_json::from_str::<models::Config>(&content) {
+            return Ok(config);
+        }
+        // Fallback: try old format (just token as string or in object)
+        if let Ok(data) = serde_json::from_str::<serde_json::Value>(&content)
+            && let Some(token) = data["token"].as_str()
+        {
+            return Ok(models::Config::new(token.to_string()));
+        }
+    }
+    Err("Config file not found".into())
+}
+
+fn write_config(config: &models::Config) -> Result<(), Box<dyn Error>> {
+    let config_path = get_config_path();
+    if let Some(parent) = config_path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    fs::write(config_path, serde_json::to_string_pretty(&config)?)?;
+    Ok(())
+}
+
+fn get_token() -> Result<String, Box<dyn Error>> {
+    // 1. Check config file first
+    if let Ok(config) = read_config() {
+        let token = config.token.trim();
+        if !token.is_empty() {
+            return Ok(token.to_string());
         }
     }
 
@@ -108,6 +153,10 @@ fn get_token() -> Result<String, Box<dyn Error>> {
     Err("Not authenticated. Please run `attio auth <token>`.".into())
 }
 
+fn get_config() -> Result<models::Config, Box<dyn Error>> {
+    read_config()
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     dotenv().ok();
@@ -116,19 +165,67 @@ async fn main() -> Result<(), Box<dyn Error>> {
     match cli.command {
         Commands::Auth { token } => {
             let trimmed_token = token.trim().to_string();
-            let config_path = get_config_path();
-            if let Some(parent) = config_path.parent() {
-                fs::create_dir_all(parent)?;
-            }
-            let data = serde_json::json!({ "token": trimmed_token });
-            fs::write(config_path, serde_json::to_string_pretty(&data)?)?;
+            let config = if let Ok(mut existing_config) = read_config() {
+                existing_config.token = trimmed_token;
+                existing_config
+            } else {
+                models::Config::new(trimmed_token)
+            };
+            write_config(&config)?;
             println!(
                 "✅ Successfully authenticated! Token saved to {:?}",
                 get_config_path()
             );
         }
+        Commands::Config { action } => match action {
+            ConfigCommands::Set { key, value } => {
+                let mut config = read_config().unwrap_or_else(|_| {
+                    eprintln!("⚠️  No config found. Creating new config...");
+                    models::Config::new(String::new())
+                });
+
+                match key.as_str() {
+                    "cache-limit-mb" => {
+                        let limit: u64 = value.parse().map_err(|_| {
+                            "Invalid value. cache-limit-mb must be a positive number."
+                        })?;
+                        config.cache_limit_mb = limit;
+                        write_config(&config)?;
+                        println!("✅ Set cache-limit-mb to {}", limit);
+                    }
+                    _ => {
+                        return Err(format!("Unknown config key: {}. Available keys: cache-limit-mb", key).into());
+                    }
+                }
+            }
+            ConfigCommands::Get { key } => {
+                let config = get_config()?;
+                match key.as_str() {
+                    "cache-limit-mb" => {
+                        println!("{}", config.cache_limit_mb);
+                    }
+                    _ => {
+                        return Err(format!("Unknown config key: {}. Available keys: cache-limit-mb", key).into());
+                    }
+                }
+            }
+            ConfigCommands::List => {
+                let config = get_config()?;
+                let mut table = comfy_table::Table::new();
+                table
+                    .set_header(vec!["Key", "Value"])
+                    .load_preset(comfy_table::presets::UTF8_HORIZONTAL_ONLY)
+                    .set_content_arrangement(comfy_table::ContentArrangement::Dynamic);
+
+                table.add_row(vec!["token", &config.token]);
+                table.add_row(vec!["cache-limit-mb", &config.cache_limit_mb.to_string()]);
+
+                println!("{table}");
+            }
+        }
         Commands::Notes { action } => {
             let token = get_token()?;
+            let config = get_config().unwrap_or_else(|_| models::Config::new(token.clone()));
             let client = AttioClient::new(token);
             match action {
                 NoteCommands::List { plain } => {
@@ -152,7 +249,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
                         println!("{table}");
                     } else {
-                        tui::run_list_tui(client).await?;
+                        tui::run_list_tui(client, config.cache_limit_mb).await?;
                     }
                 }
                 NoteCommands::Get {
