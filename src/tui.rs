@@ -1,3 +1,4 @@
+use crate::cache;
 use crate::client::AttioClient;
 use crate::models::Note;
 use crossterm::{
@@ -108,7 +109,7 @@ async fn run_app(
         for note in new_notes {
             // Only add if not already in cache
             if !cache.iter().any(|n| n.id.note_id == note.id.note_id) {
-                let note_size = note.estimate_size_bytes();
+                let note_size = cache::estimate_note_size(&note);
                 // Check if adding this note would exceed the limit
                 if *cache_size + note_size <= limit {
                     *cache_size += note_size;
