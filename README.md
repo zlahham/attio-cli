@@ -24,7 +24,23 @@ cargo build --release
 The binary will be available at `target/release/attio`.
 
 ### From Binary
-[TODO: Add instructions once releases are published]
+
+Download the latest release for your platform from the [releases page](https://github.com/zlahham/attio-cli/releases).
+
+**Available platforms:**
+- Linux (x86_64) - glibc and musl variants
+- macOS (x86_64 and ARM64)
+- Windows (x86_64)
+
+**Installation:**
+```bash
+# Linux/macOS - download and make executable
+chmod +x attio-*
+sudo mv attio-* /usr/local/bin/attio
+
+# Or add to your PATH
+mv attio-* ~/bin/attio  # or any directory in your PATH
+```
 
 ## Authentication
 
@@ -186,6 +202,23 @@ cargo run -- notes get <note-id>
 docker-compose run app cargo build
 docker-compose run app cargo run -- <command>
 ```
+
+### Creating Releases
+
+Releases are automated via GitHub Actions. To create a new release:
+
+1. Update the version in `Cargo.toml`
+2. Commit the version change
+3. Create and push a version tag:
+   ```bash
+   git tag v0.1.0
+   git push origin v0.1.0
+   ```
+
+This will automatically:
+- Build binaries for Linux (x64), macOS (x64, ARM), and Windows (x64)
+- Create a GitHub release with all binaries attached
+- Optionally publish to crates.io (requires `CARGO_TOKEN` secret)
 
 ## Roadmap
 
