@@ -54,7 +54,7 @@ impl AttioClient {
         }
 
         if !query_params.is_empty() {
-            url.push_str("?");
+            url.push('?');
             url.push_str(&query_params.join("&"));
         }
 

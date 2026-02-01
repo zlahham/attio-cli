@@ -73,7 +73,7 @@ async fn run_app(
         let size = terminal.size().unwrap_or_default();
         let height = size.height.saturating_sub(7) as u32;
         // Cap limit at 50. Attio's notes endpoint seems to have a lower limit than 100.
-        let val = height.min(50).max(1);
+        let val = height.clamp(1, 50);
         log_debug(&format!(
             "Calculated limit: {} (Terminal height: {})",
             val, size.height
