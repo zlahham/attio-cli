@@ -127,4 +127,65 @@ impl AttioClient {
 
         Ok(())
     }
+
+    #[cfg(test)]
+    pub(crate) fn build_notes_url(limit: Option<u32>, offset: Option<u32>) -> String {
+        let mut url = format!("{}/notes", BASE_URL);
+        let mut query_params = Vec::new();
+
+        if let Some(limit) = limit {
+            query_params.push(format!("limit={}", limit));
+        }
+        if let Some(offset) = offset {
+            query_params.push(format!("offset={}", offset));
+        }
+
+        if !query_params.is_empty() {
+            url.push('?');
+            url.push_str(&query_params.join("&"));
+        }
+
+        url
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_client_creation() {
+        let client = AttioClient::new("test_token".to_string());
+        // Just verify it doesn't panic
+        assert!(std::mem::size_of_val(&client) > 0);
+    }
+
+    #[test]
+    fn test_build_notes_url_no_params() {
+        let url = AttioClient::build_notes_url(None, None);
+        assert_eq!(url, "https://api.attio.com/v2/notes");
+    }
+
+    #[test]
+    fn test_build_notes_url_with_limit() {
+        let url = AttioClient::build_notes_url(Some(50), None);
+        assert_eq!(url, "https://api.attio.com/v2/notes?limit=50");
+    }
+
+    #[test]
+    fn test_build_notes_url_with_offset() {
+        let url = AttioClient::build_notes_url(None, Some(100));
+        assert_eq!(url, "https://api.attio.com/v2/notes?offset=100");
+    }
+
+    #[test]
+    fn test_build_notes_url_with_both_params() {
+        let url = AttioClient::build_notes_url(Some(25), Some(50));
+        assert_eq!(url, "https://api.attio.com/v2/notes?limit=25&offset=50");
+    }
+
+    #[test]
+    fn test_base_url_is_v2() {
+        assert_eq!(BASE_URL, "https://api.attio.com/v2");
+    }
 }
