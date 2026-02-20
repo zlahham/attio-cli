@@ -3,6 +3,17 @@ use std::collections::HashMap;
 
 use super::common::Cacheable;
 
+/// Request body data for creating or updating a record.
+/// Wraps a `values` map where keys are attribute slugs (e.g. "name", "domains")
+/// and values are the attribute values in Attio's expected format.
+///
+/// Used inside `CreateRequest<CreateOrUpdateRecordData>` which serializes to:
+/// `{ "data": { "values": { "attr": [...] } } }`
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CreateOrUpdateRecordData {
+    pub values: HashMap<String, serde_json::Value>,
+}
+
 /// Unique identifier for a record in Attio.
 /// Records are identified by a combination of workspace, object, and record IDs.
 #[derive(Debug, Serialize, Deserialize)]
@@ -330,5 +341,64 @@ mod tests {
         let size = record.estimate_size_bytes();
         assert!(size > 0);
         assert!(size >= std::mem::size_of::<Record>());
+    }
+
+    #[test]
+    fn test_create_or_update_record_data_serialization() {
+        let mut values = HashMap::new();
+        values.insert(
+            "name".to_string(),
+            serde_json::json!([{"value": "Acme Corp"}]),
+        );
+        values.insert(
+            "domains".to_string(),
+            serde_json::json!([{"domain": "acme.com"}]),
+        );
+
+        let data = CreateOrUpdateRecordData { values };
+        let json = serde_json::to_value(&data).unwrap();
+
+        let values_obj = json.get("values").unwrap().as_object().unwrap();
+        assert_eq!(
+            values_obj.get("name").unwrap(),
+            &serde_json::json!([{"value": "Acme Corp"}])
+        );
+        assert_eq!(
+            values_obj.get("domains").unwrap(),
+            &serde_json::json!([{"domain": "acme.com"}])
+        );
+    }
+
+    #[test]
+    fn test_create_or_update_record_data_wrapped_in_create_request() {
+        use crate::models::CreateRequest;
+
+        let mut values = HashMap::new();
+        values.insert(
+            "name".to_string(),
+            serde_json::json!([{"value": "Test Co"}]),
+        );
+
+        let request = CreateRequest {
+            data: CreateOrUpdateRecordData { values },
+        };
+        let json = serde_json::to_value(&request).unwrap();
+
+        // Should serialize as { "data": { "values": { ... } } }
+        let data = json.get("data").unwrap();
+        let values_obj = data.get("values").unwrap().as_object().unwrap();
+        assert_eq!(
+            values_obj.get("name").unwrap(),
+            &serde_json::json!([{"value": "Test Co"}])
+        );
+    }
+
+    #[test]
+    fn test_create_or_update_record_data_empty_values() {
+        let data = CreateOrUpdateRecordData {
+            values: HashMap::new(),
+        };
+        let json = serde_json::to_string(&data).unwrap();
+        assert_eq!(json, r#"{"values":{}}"#);
     }
 }

@@ -161,6 +161,60 @@ impl AttioClient {
         Ok(response_data)
     }
 
+    pub async fn create_record(
+        &self,
+        object: &str,
+        data: crate::models::CreateOrUpdateRecordRequest,
+    ) -> Result<crate::models::GetRecordResponse, Box<dyn Error>> {
+        let url = format!("{}/objects/{}/records", BASE_URL, object);
+        let response = self.client.post(&url).json(&data).send().await?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let body = response.text().await?;
+            return Err(format_api_error(status, &body).into());
+        }
+
+        let response_data = response.json::<crate::models::GetRecordResponse>().await?;
+        Ok(response_data)
+    }
+
+    pub async fn update_record(
+        &self,
+        object: &str,
+        record_id: &str,
+        data: crate::models::CreateOrUpdateRecordRequest,
+    ) -> Result<crate::models::GetRecordResponse, Box<dyn Error>> {
+        let url = format!("{}/objects/{}/records/{}", BASE_URL, object, record_id);
+        let response = self.client.patch(&url).json(&data).send().await?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let body = response.text().await?;
+            return Err(format_api_error(status, &body).into());
+        }
+
+        let response_data = response.json::<crate::models::GetRecordResponse>().await?;
+        Ok(response_data)
+    }
+
+    pub async fn delete_record(
+        &self,
+        object: &str,
+        record_id: &str,
+    ) -> Result<(), Box<dyn Error>> {
+        let url = format!("{}/objects/{}/records/{}", BASE_URL, object, record_id);
+        let response = self.client.delete(&url).send().await?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let body = response.text().await?;
+            return Err(format_api_error(status, &body).into());
+        }
+
+        Ok(())
+    }
+
     pub async fn delete_note(&self, note_id: &str) -> Result<(), Box<dyn Error>> {
         let response = self
             .client
@@ -185,6 +239,11 @@ impl AttioClient {
     #[cfg(test)]
     pub(crate) fn build_record_url(object: &str, record_id: &str) -> String {
         format!("{}/objects/{}/records/{}", BASE_URL, object, record_id)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn build_create_record_url(object: &str) -> String {
+        format!("{}/objects/{}/records", BASE_URL, object)
     }
 
     #[cfg(test)]
@@ -267,6 +326,24 @@ mod tests {
     fn test_build_records_query_url_people() {
         let url = AttioClient::build_records_query_url("people");
         assert_eq!(url, "https://api.attio.com/v2/objects/people/records/query");
+    }
+
+    #[test]
+    fn test_build_create_record_url() {
+        let url = AttioClient::build_create_record_url("companies");
+        assert_eq!(
+            url,
+            "https://api.attio.com/v2/objects/companies/records"
+        );
+    }
+
+    #[test]
+    fn test_build_create_record_url_people() {
+        let url = AttioClient::build_create_record_url("people");
+        assert_eq!(
+            url,
+            "https://api.attio.com/v2/objects/people/records"
+        );
     }
 
     #[test]
