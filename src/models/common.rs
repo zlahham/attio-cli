@@ -25,6 +25,12 @@ pub struct CreateRequest<T> {
     pub data: T,
 }
 
+/// Attio API error response body
+#[derive(Debug, Deserialize)]
+pub struct ApiErrorBody {
+    pub message: String,
+}
+
 /// Response from the identify/self endpoint
 #[derive(Debug, Serialize, Deserialize)]
 pub struct IdentifyResponse {
