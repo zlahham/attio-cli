@@ -78,12 +78,11 @@ impl Record {
         let obj = first.as_object()?;
 
         for &field in VALUE_FIELDS {
-            if let Some(val) = obj.get(field) {
-                if let Some(s) = val.as_str() {
-                    if !s.is_empty() {
-                        return Some(s.to_string());
-                    }
-                }
+            if let Some(val) = obj.get(field)
+                && let Some(s) = val.as_str()
+                && !s.is_empty()
+            {
+                return Some(s.to_string());
             }
         }
 
