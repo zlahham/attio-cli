@@ -103,10 +103,7 @@ impl Record {
         let mut pairs: Vec<(String, String)> = self
             .values
             .keys()
-            .filter_map(|key| {
-                self.extract_first_value(key)
-                    .map(|val| (key.clone(), val))
-            })
+            .filter_map(|key| self.extract_first_value(key).map(|val| (key.clone(), val)))
             .collect();
         pairs.sort_by(|a, b| a.0.cmp(&b.0));
         pairs
@@ -217,8 +214,7 @@ mod tests {
 
     #[test]
     fn test_extract_phone_value() {
-        let record =
-            record_with_values(r#"{"phone_numbers": [{"phone_number": "+1-555-0100"}]}"#);
+        let record = record_with_values(r#"{"phone_numbers": [{"phone_number": "+1-555-0100"}]}"#);
         assert_eq!(
             record.extract_first_value("phone_numbers"),
             Some("+1-555-0100".to_string())
@@ -227,8 +223,7 @@ mod tests {
 
     #[test]
     fn test_extract_location_value() {
-        let record =
-            record_with_values(r#"{"primary_location": [{"locality": "San Francisco"}]}"#);
+        let record = record_with_values(r#"{"primary_location": [{"locality": "San Francisco"}]}"#);
         assert_eq!(
             record.extract_first_value("primary_location"),
             Some("San Francisco".to_string())

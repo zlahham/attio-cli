@@ -365,10 +365,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     open_in_browser,
                 } => {
                     let mut values = std::collections::HashMap::new();
-                    values.insert(
-                        "name".to_string(),
-                        serde_json::json!([{"value": name}]),
-                    );
+                    values.insert("name".to_string(), serde_json::json!([{"value": name}]));
                     if let Some(domain) = domain {
                         values.insert(
                             "domains".to_string(),
@@ -415,10 +412,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 } => {
                     let mut values = std::collections::HashMap::new();
                     if let Some(name) = name {
-                        values.insert(
-                            "name".to_string(),
-                            serde_json::json!([{"value": name}]),
-                        );
+                        values.insert("name".to_string(), serde_json::json!([{"value": name}]));
                     }
                     if let Some(domain) = domain {
                         values.insert(
@@ -428,9 +422,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     }
 
                     if values.is_empty() {
-                        return Err(
-                            "At least one of --name or --domain must be provided.".into()
-                        );
+                        return Err("At least one of --name or --domain must be provided.".into());
                     }
 
                     let request = models::CreateOrUpdateRecordRequest {

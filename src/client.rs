@@ -198,11 +198,7 @@ impl AttioClient {
         Ok(response_data)
     }
 
-    pub async fn delete_record(
-        &self,
-        object: &str,
-        record_id: &str,
-    ) -> Result<(), Box<dyn Error>> {
+    pub async fn delete_record(&self, object: &str, record_id: &str) -> Result<(), Box<dyn Error>> {
         let url = format!("{}/objects/{}/records/{}", BASE_URL, object, record_id);
         let response = self.client.delete(&url).send().await?;
 
@@ -310,7 +306,10 @@ mod tests {
     #[test]
     fn test_build_records_query_url() {
         let url = AttioClient::build_records_query_url("companies");
-        assert_eq!(url, "https://api.attio.com/v2/objects/companies/records/query");
+        assert_eq!(
+            url,
+            "https://api.attio.com/v2/objects/companies/records/query"
+        );
     }
 
     #[test]
@@ -331,19 +330,13 @@ mod tests {
     #[test]
     fn test_build_create_record_url() {
         let url = AttioClient::build_create_record_url("companies");
-        assert_eq!(
-            url,
-            "https://api.attio.com/v2/objects/companies/records"
-        );
+        assert_eq!(url, "https://api.attio.com/v2/objects/companies/records");
     }
 
     #[test]
     fn test_build_create_record_url_people() {
         let url = AttioClient::build_create_record_url("people");
-        assert_eq!(
-            url,
-            "https://api.attio.com/v2/objects/people/records"
-        );
+        assert_eq!(url, "https://api.attio.com/v2/objects/people/records");
     }
 
     #[test]

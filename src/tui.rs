@@ -660,7 +660,10 @@ pub async fn run_record_list_tui(
     config: RecordTuiConfig,
     cache_limit_mb: u64,
 ) -> Result<(), Box<dyn Error>> {
-    log_debug(&format!("--- RECORD SESSION START ({}) ---", config.object_slug));
+    log_debug(&format!(
+        "--- RECORD SESSION START ({}) ---",
+        config.object_slug
+    ));
 
     panic::set_hook(Box::new(|info| {
         let msg = format!("CRITICAL PANIC: {}", info);
