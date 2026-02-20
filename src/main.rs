@@ -31,6 +31,11 @@ enum Commands {
         #[command(subcommand)]
         action: NoteCommands,
     },
+    /// Company related actions
+    Companies {
+        #[command(subcommand)]
+        action: CompanyCommands,
+    },
     /// Configuration management
     Config {
         #[command(subcommand)]
@@ -97,6 +102,55 @@ enum NoteCommands {
     Delete {
         /// The ID of the note to delete
         note_id: String,
+    },
+}
+
+#[derive(Subcommand)]
+enum CompanyCommands {
+    /// List all companies
+    List {
+        /// Show companies in plain text mode (non-interactive)
+        #[arg(long)]
+        plain: bool,
+    },
+    /// Get a specific company by record ID
+    Get {
+        /// The record ID of the company to retrieve
+        record_id: String,
+        /// Open the company in your default browser
+        #[arg(long)]
+        open_in_browser: bool,
+    },
+    /// Create a new company
+    Create {
+        /// The company name
+        #[arg(long)]
+        name: String,
+        /// The company domain (e.g. "acme.com")
+        #[arg(long)]
+        domain: Option<String>,
+        /// Open the company in your default browser after creation
+        #[arg(long)]
+        open_in_browser: bool,
+    },
+    /// Update an existing company
+    Update {
+        /// The record ID of the company to update
+        record_id: String,
+        /// New company name
+        #[arg(long)]
+        name: Option<String>,
+        /// New company domain (e.g. "acme.com")
+        #[arg(long)]
+        domain: Option<String>,
+        /// Open the company in your default browser after updating
+        #[arg(long)]
+        open_in_browser: bool,
+    },
+    /// Delete a company by record ID
+    Delete {
+        /// The record ID of the company to delete
+        record_id: String,
     },
 }
 
@@ -232,6 +286,184 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 println!("{table}");
             }
         },
+        Commands::Companies { action } => {
+            let token = get_token()?;
+            let config_data = get_config().unwrap_or_else(|_| models::Config::new(token.clone()));
+            let client = AttioClient::new(token);
+            match action {
+                CompanyCommands::List { plain } => {
+                    if plain {
+                        let response = client.list_records("companies", None, None).await?;
+
+                        let mut table = comfy_table::Table::new();
+                        table
+                            .set_header(vec!["#", "Record ID", "Name"])
+                            .load_preset(comfy_table::presets::UTF8_HORIZONTAL_ONLY)
+                            .set_content_arrangement(comfy_table::ContentArrangement::Dynamic);
+
+                        for (i, record) in response.data.iter().enumerate() {
+                            table.add_row(vec![
+                                (i + 1).to_string(),
+                                record.id.record_id.clone(),
+                                record.display_name(),
+                            ]);
+                        }
+
+                        println!("{table}");
+                    } else {
+                        let tui_config = tui::RecordTuiConfig {
+                            object_slug: "companies".into(),
+                            display_name: "Companies".into(),
+                            columns: vec![
+                                tui::RecordTuiColumn {
+                                    header: "Name".into(),
+                                    attribute_key: "name".into(),
+                                },
+                                tui::RecordTuiColumn {
+                                    header: "Domain".into(),
+                                    attribute_key: "domains".into(),
+                                },
+                            ],
+                        };
+                        tui::run_record_list_tui(client, tui_config, config_data.cache_limit_mb)
+                            .await?;
+                    }
+                }
+                CompanyCommands::Get {
+                    record_id,
+                    open_in_browser,
+                } => {
+                    let response = client.get_record("companies", &record_id).await?;
+                    let record = response.data;
+
+                    let mut table = comfy_table::Table::new();
+                    table
+                        .set_header(vec!["Attribute", "Value"])
+                        .load_preset(comfy_table::presets::UTF8_HORIZONTAL_ONLY)
+                        .set_content_arrangement(comfy_table::ContentArrangement::Dynamic);
+
+                    table.add_row(vec!["Record ID", &record.id.record_id]);
+                    table.add_row(vec!["Created At", &record.created_at]);
+                    table.add_row(vec!["Web URL", &record.web_url]);
+
+                    for (key, value) in record.all_display_values() {
+                        table.add_row(vec![&key, &value]);
+                    }
+
+                    println!("{table}");
+
+                    if open_in_browser {
+                        println!("Opening company in browser...");
+                        if let Err(e) = webbrowser::open(&record.web_url) {
+                            eprintln!("Failed to open browser: {}", e);
+                        }
+                    }
+                }
+                CompanyCommands::Create {
+                    name,
+                    domain,
+                    open_in_browser,
+                } => {
+                    let mut values = std::collections::HashMap::new();
+                    values.insert("name".to_string(), serde_json::json!([{"value": name}]));
+                    if let Some(domain) = domain {
+                        values.insert(
+                            "domains".to_string(),
+                            serde_json::json!([{"domain": domain}]),
+                        );
+                    }
+
+                    let request = models::CreateOrUpdateRecordRequest {
+                        data: models::CreateOrUpdateRecordData { values },
+                    };
+                    let response = client.create_record("companies", request).await?;
+                    let record = response.data;
+
+                    println!("✅ Company created successfully!");
+
+                    let mut table = comfy_table::Table::new();
+                    table
+                        .set_header(vec!["Attribute", "Value"])
+                        .load_preset(comfy_table::presets::UTF8_HORIZONTAL_ONLY)
+                        .set_content_arrangement(comfy_table::ContentArrangement::Dynamic);
+
+                    table.add_row(vec!["Record ID", &record.id.record_id]);
+                    table.add_row(vec!["Created At", &record.created_at]);
+                    table.add_row(vec!["Web URL", &record.web_url]);
+
+                    for (key, value) in record.all_display_values() {
+                        table.add_row(vec![&key, &value]);
+                    }
+
+                    println!("{table}");
+
+                    if open_in_browser {
+                        println!("Opening company in browser...");
+                        if let Err(e) = webbrowser::open(&record.web_url) {
+                            eprintln!("Failed to open browser: {}", e);
+                        }
+                    }
+                }
+                CompanyCommands::Update {
+                    record_id,
+                    name,
+                    domain,
+                    open_in_browser,
+                } => {
+                    let mut values = std::collections::HashMap::new();
+                    if let Some(name) = name {
+                        values.insert("name".to_string(), serde_json::json!([{"value": name}]));
+                    }
+                    if let Some(domain) = domain {
+                        values.insert(
+                            "domains".to_string(),
+                            serde_json::json!([{"domain": domain}]),
+                        );
+                    }
+
+                    if values.is_empty() {
+                        return Err("At least one of --name or --domain must be provided.".into());
+                    }
+
+                    let request = models::CreateOrUpdateRecordRequest {
+                        data: models::CreateOrUpdateRecordData { values },
+                    };
+                    let response = client
+                        .update_record("companies", &record_id, request)
+                        .await?;
+                    let record = response.data;
+
+                    println!("✅ Company updated successfully!");
+
+                    let mut table = comfy_table::Table::new();
+                    table
+                        .set_header(vec!["Attribute", "Value"])
+                        .load_preset(comfy_table::presets::UTF8_HORIZONTAL_ONLY)
+                        .set_content_arrangement(comfy_table::ContentArrangement::Dynamic);
+
+                    table.add_row(vec!["Record ID", &record.id.record_id]);
+                    table.add_row(vec!["Created At", &record.created_at]);
+                    table.add_row(vec!["Web URL", &record.web_url]);
+
+                    for (key, value) in record.all_display_values() {
+                        table.add_row(vec![&key, &value]);
+                    }
+
+                    println!("{table}");
+
+                    if open_in_browser {
+                        println!("Opening company in browser...");
+                        if let Err(e) = webbrowser::open(&record.web_url) {
+                            eprintln!("Failed to open browser: {}", e);
+                        }
+                    }
+                }
+                CompanyCommands::Delete { record_id } => {
+                    client.delete_record("companies", &record_id).await?;
+                    println!("✅ Company {} deleted successfully.", record_id);
+                }
+            }
+        }
         Commands::Notes { action } => {
             let token = get_token()?;
             let config = get_config().unwrap_or_else(|_| models::Config::new(token.clone()));

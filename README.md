@@ -2,18 +2,20 @@
 
 A command-line interface for the Attio CRM API built with Rust.
 
-> **⚠️ Work In Progress**: This CLI is actively being developed. Currently, only the **Notes** endpoints are implemented. Additional endpoints for other Attio resources (companies, people, lists, etc.) are being added.
+> **⚠️ Work In Progress**: This CLI is actively being developed. Currently, **Notes** and **Companies** endpoints are implemented. Additional endpoints for other Attio resources (people, lists, etc.) are being added.
 
 ## Features
 
 - 🔐 Simple authentication with API tokens
 - 📝 Full note management (list, view, create, delete)
-- 🎨 Interactive TUI mode for browsing notes
-  - 🔍 Real-time search across cached notes (press `/`)
+- 🏢 Company browsing (list, view)
+- 🎨 Interactive TUI mode for browsing notes and companies
+  - 🔍 Real-time search across cached records (press `/`)
   - 💾 Smart caching with configurable memory limits
-  - ⚡ Fetch all notes with Ctrl+A for comprehensive search
+  - ⚡ Fetch all records with Ctrl+A for comprehensive search
   - 🎨 Color-coded cache usage indicators
-- 🌐 Open notes directly in your browser
+  - 🔌 Generic record TUI — adding new object types (people, deals) requires only config
+- 🌐 Open notes and companies directly in your browser
 - 📊 Clean table-formatted output
 - ⚙️ Configurable settings (cache limits, etc.)
 
@@ -250,6 +252,51 @@ Deletes a note by ID.
 
 ---
 
+### Companies Commands
+
+#### List Companies
+
+```bash
+# Interactive TUI mode (default)
+attio companies list
+
+# Plain text table mode
+attio companies list --plain
+```
+
+Lists all companies in your workspace. By default, launches an interactive terminal UI. Use `--plain` for a simple table output.
+
+The interactive TUI has the same controls as the notes TUI:
+- `←/→` - Navigate between pages
+- `/` - Search by name, domain, or any displayed column
+- `Ctrl+A` - Fetch all companies into cache
+- `Q` or `Esc` - Quit
+
+**Flags:**
+- `--plain` - Display companies in a non-interactive table format
+
+---
+
+#### Get a Company
+
+```bash
+# Display company details
+attio companies get <record-id>
+
+# Display and open in browser
+attio companies get <record-id> --open-in-browser
+```
+
+Retrieves and displays details for a specific company, showing all attributes that have values.
+
+**Arguments:**
+- `<record-id>` - The record ID of the company to retrieve
+
+**Flags:**
+- `--open-in-browser` - Open the company in your default browser after displaying it
+
+---
+
 ## Configuration
 
 Configuration is stored at:
@@ -293,6 +340,8 @@ cargo run -- <command>
 cargo run -- auth <token>
 cargo run -- notes list
 cargo run -- notes get <note-id>
+cargo run -- companies list
+cargo run -- companies get <record-id>
 ```
 
 ### Docker Development
@@ -324,10 +373,9 @@ This will automatically:
 - [x] Notes endpoints (list, get, create, delete)
 - [x] Interactive TUI with search and caching
 - [x] Configuration management
-- [ ] Companies endpoints
+- [x] Companies endpoints (list, get) with interactive TUI
 - [ ] People endpoints
 - [ ] Lists endpoints
-- [ ] Records endpoints
 - [ ] Webhooks endpoints
 - [ ] Additional filtering and pagination options
 
