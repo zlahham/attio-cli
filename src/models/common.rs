@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 
 /// Trait for models that can be cached with memory tracking
-#[allow(dead_code)]
 pub trait Cacheable {
     /// Estimate the memory size of this item in bytes
     fn estimate_size_bytes(&self) -> usize;
