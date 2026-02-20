@@ -1,8 +1,18 @@
-use crate::models::ListNotesResponse;
-use reqwest::{Client, header};
+use crate::models::{ApiErrorBody, ListNotesResponse};
+use reqwest::{Client, StatusCode, header};
 use std::error::Error;
 
 const BASE_URL: &str = "https://api.attio.com/v2";
+
+/// Try to extract a human-readable message from an Attio API error response.
+/// Falls back to the raw body if it can't be parsed.
+fn format_api_error(status: StatusCode, body: &str) -> String {
+    if let Ok(api_error) = serde_json::from_str::<ApiErrorBody>(body) {
+        format!("API Error ({}): {}", status, api_error.message)
+    } else {
+        format!("API Error ({}): {}", status, body)
+    }
+}
 
 pub struct AttioClient {
     client: Client,
@@ -31,7 +41,7 @@ impl AttioClient {
         if !response.status().is_success() {
             let status = response.status();
             let body = response.text().await?;
-            return Err(format!("API Error ({}): {}", status, body).into());
+            return Err(format_api_error(status, &body).into());
         }
 
         let response_data = response.json::<crate::models::IdentifyResponse>().await?;
@@ -63,7 +73,7 @@ impl AttioClient {
         if !response.status().is_success() {
             let status = response.status();
             let body = response.text().await?;
-            return Err(format!("API Error ({}): {}", status, body).into());
+            return Err(format_api_error(status, &body).into());
         }
 
         let body = response.text().await?;
@@ -84,7 +94,7 @@ impl AttioClient {
         if !response.status().is_success() {
             let status = response.status();
             let body = response.text().await?;
-            return Err(format!("API Error ({}): {}", status, body).into());
+            return Err(format_api_error(status, &body).into());
         }
 
         let response_data = response.json::<crate::models::GetNoteResponse>().await?;
@@ -105,7 +115,7 @@ impl AttioClient {
         if !response.status().is_success() {
             let status = response.status();
             let body = response.text().await?;
-            return Err(format!("API Error ({}): {}", status, body).into());
+            return Err(format_api_error(status, &body).into());
         }
 
         let response_data = response.json::<crate::models::GetNoteResponse>().await?;
@@ -122,7 +132,7 @@ impl AttioClient {
         if !response.status().is_success() {
             let status = response.status();
             let body = response.text().await?;
-            return Err(format!("API Error ({}): {}", status, body).into());
+            return Err(format_api_error(status, &body).into());
         }
 
         Ok(())
@@ -187,5 +197,25 @@ mod tests {
     #[test]
     fn test_base_url_is_v2() {
         assert_eq!(BASE_URL, "https://api.attio.com/v2");
+    }
+
+    #[test]
+    fn test_format_api_error_with_valid_json() {
+        let body = r#"{"status_code":404,"type":"invalid_request_error","code":"not_found","message":"Record with ID \"abc-123\" was not found."}"#;
+        let result = format_api_error(StatusCode::NOT_FOUND, body);
+        assert_eq!(
+            result,
+            r#"API Error (404 Not Found): Record with ID "abc-123" was not found."#
+        );
+    }
+
+    #[test]
+    fn test_format_api_error_with_invalid_json() {
+        let body = "Something went wrong";
+        let result = format_api_error(StatusCode::INTERNAL_SERVER_ERROR, body);
+        assert_eq!(
+            result,
+            "API Error (500 Internal Server Error): Something went wrong"
+        );
     }
 }
