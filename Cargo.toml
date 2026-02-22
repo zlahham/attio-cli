@@ -17,3 +17,15 @@ dirs = "6.0"
 webbrowser = "1.0"
 ratatui = "0.30"
 crossterm = "0.29"
+
+# Release configuration (cargo-release)
+[package.metadata.release]
+# Skip crates.io publish — GitHub Actions handles this on tag push
+publish = false
+# Tag format matching existing convention (v0.2.0, v0.3.0, etc.)
+tag-name = "v{{version}}"
+# Commit message format
+pre-release-commit-message = "Bump version to {{version}}"
+# Push to remote after tagging
+push = true
+tag = true
